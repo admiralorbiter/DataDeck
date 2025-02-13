@@ -133,3 +133,26 @@ def deactivate_observer(request, observer_id):
         messages.error(request, "Observer not found.")
     
     return redirect('admin_dashboard')
+
+@login_required
+def change_observer_password(request, observer_id):
+    if not isinstance(request.user, CustomAdmin):
+        messages.error(request, "You don't have permission to perform this action.")
+        return redirect('home')
+
+    try:
+        observer = Observer.objects.get(id=observer_id)
+        if request.method == 'POST':
+            new_password = request.POST.get('new_password')
+            if new_password:
+                observer.password = make_password(new_password)
+                observer.save()
+                messages.success(request, f"Password updated for observer {observer.name}")
+            else:
+                messages.error(request, "New password cannot be empty")
+        else:
+            messages.error(request, "Invalid request method")
+    except Observer.DoesNotExist:
+        messages.error(request, "Observer not found")
+    
+    return redirect('admin_dashboard')

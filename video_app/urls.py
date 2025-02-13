@@ -18,6 +18,7 @@ urlpatterns = [
     path('admin-dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
     path('admin/teacher/<int:teacher_id>/update-district/', admin_views.update_teacher_district, name='update_teacher_district'),
     path('admin/observer/<int:observer_id>/deactivate/', admin_views.deactivate_observer, name='deactivate_observer'),
+    path('admin/observer/<int:observer_id>/change-password/', admin_views.change_observer_password, name='change_observer_password'),
     path('admin/create-observer/', admin_views.create_observer, name='create_observer'),
     
     # District Management

@@ -179,3 +179,30 @@
 .modal-header .btn-close {
     color: white;
 }
+
+.observer-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.observer-actions button,
+.observer-actions form {
+    flex: 1;
+}
+
+.observer-actions .btn {
+    width: 100%;
+    white-space: nowrap;
+}
+
+.observer-card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.observer-info {
+    margin-bottom: 15px;
+}
