@@ -127,7 +127,7 @@ if USE_MYSQL:
             'ENGINE': 'django.db.backends.mysql',
             'NAME': os.environ.get('DB_NAME', 'jlane$datadeck'),
             'USER': os.environ.get('DB_USER', 'jlane'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'Thisisapassword#1'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'jonisthebest'),
             'HOST': os.environ.get('DB_HOST', 'jlane.mysql.pythonanywhere-services.com'),
             'PORT': os.environ.get('DB_PORT', '3306'),
         }
