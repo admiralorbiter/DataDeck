@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from functools import wraps
-from .models import Session, Observer
+from .models import Session, Observer, CustomAdmin, Media
 
 def observer_required(view_func):
     @wraps(view_func)
@@ -17,14 +17,24 @@ def observer_required(view_func):
 def observer_dashboard(request):
     try:
         observer = Observer.objects.get(id=request.session['observer_id'])
-        available_sessions = Session.objects.filter(
-            created_by__district=observer.district
-        ).select_related('created_by').order_by('created_by__last_name', 'section')
+        
+        # Get all teachers in the observer's district
+        teachers = CustomAdmin.objects.filter(
+            district=observer.district
+        ).prefetch_related('session_set')
+        
+        # Get recent media submissions from this district
+        media_items = Media.objects.filter(
+            session__created_by__district=observer.district
+        ).select_related(
+            'session', 
+            'session__created_by'
+        ).order_by('-uploaded_at')[:50]
         
         context = {
-            'observer_name': observer.name,
-            'observer_district': observer.district,
-            'available_sessions': available_sessions
+            'district': observer.district,
+            'teachers': teachers,
+            'media_items': media_items
         }
         
         # Refresh the session
@@ -35,7 +45,7 @@ def observer_dashboard(request):
         # Clear the invalid session
         request.session.flush()
         messages.error(request, "Observer not found")
-        return redirect('admin_login') 
+        return redirect('admin_login')
 
 def observer_logout(request):
     if 'observer_id' in request.session:

@@ -7,36 +7,44 @@
 {% endblock %}
 {% block content %}
 <div class="observer-dashboard">
-    <h1>District Dashboard - {{ district.name }}</h1>
-    
-    <div class="dashboard-section">
-        <h2>Teachers in District</h2>
-        <div class="teachers-list">
-            {% for teacher in teachers %}
-            <div class="teacher-card">
-                <h3>{{ teacher.get_full_name }}</h3>
-                <p>{{ teacher.school }}</p>
-                <p>Sessions: {{ teacher.session_set.count }}</p>
-            </div>
-            {% endfor %}
-        </div>
+    <div class="observer-welcome">
+        <h1>Welcome to {{ district.name }} District Dashboard</h1>
+        <p class="observer-district">Monitoring {{ teachers.count }} teachers</p>
     </div>
-    
-    <div class="dashboard-section">
-        <h2>Recent Submissions</h2>
-        <div class="media-grid">
-            {% for media in media_items %}
-            <div class="media-card">
-                <h4>{{ media.title }}</h4>
-                <p>Class: {{ media.session.name }}</p>
-                <p>Teacher: {{ media.session.created_by.get_full_name }}</p>
-                <p>Submitted: {{ media.uploaded_at|date:"M d, Y" }}</p>
-                {% if media.image_file %}
-                    <img src="{{ media.image_file.url }}" alt="{{ media.title }}">
-                {% endif %}
+
+    <div class="sessions-container">
+        {% for teacher in teachers %}
+        <div class="teacher-section">
+            <div class="teacher-name">
+                {{ teacher.get_full_name }}
+                <div class="school-name">{{ teacher.school }}</div>
             </div>
-            {% endfor %}
+            
+            <div class="period-list">
+                {% for session in teacher.session_set.all %}
+                <div class="period-item">
+                    <div class="period-name">
+                        {{ session.name }}
+                        <div class="period-details">
+                            Section {{ session.section }}
+                        </div>
+                    </div>
+                    <a href="{% url 'session' session.id %}" class="view-session-btn">
+                        View
+                    </a>
+                </div>
+                {% empty %}
+                <div class="period-item">
+                    <div class="period-name">No active sessions</div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
+        {% empty %}
+        <div class="teacher-section">
+            <div class="teacher-name">No teachers found in this district</div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %} 
