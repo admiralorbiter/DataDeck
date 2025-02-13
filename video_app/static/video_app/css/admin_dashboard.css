@@ -73,3 +73,109 @@
 .btn-danger:hover {
     background-color: #b52247;
 }
+
+/* District Management */
+.district-form {
+    max-width: 600px;
+    margin-bottom: 2rem;
+}
+
+.districts-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.district-card {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 6px;
+    transition: transform 0.2s ease;
+}
+
+.district-card:hover {
+    transform: translateY(-2px);
+}
+
+.district-info h4 {
+    color: #00334C;
+    margin-bottom: 1rem;
+}
+
+.district-info p {
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+/* Teacher Management */
+.teachers-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.teacher-card {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 6px;
+}
+
+.teacher-info {
+    margin-bottom: 1rem;
+}
+
+.update-district-form {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.btn-primary {
+    background-color: #00334C;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #002339;
+}
+
+/* Add these styles to your existing CSS */
+.district-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.district-actions .btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.9em;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.modal-content {
+    border-radius: 8px;
+}
+
+.modal-header {
+    background-color: #00334C;
+    color: white;
+    border-radius: 8px 8px 0 0;
+}
+
+.modal-header .btn-close {
+    color: white;
+}

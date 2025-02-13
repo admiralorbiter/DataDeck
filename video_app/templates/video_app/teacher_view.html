@@ -51,7 +51,13 @@
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="district" class="form-label">District</label>
-                            <input type="text" class="form-control" id="district" name="district" value="{{ teacher.district }}" required>
+                            <select class="form-control" id="district" name="district" required>
+                                {% for district in districts %}
+                                    <option value="{{ district.id }}" {% if district == teacher.district %}selected{% endif %}>
+                                        {{ district.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="school" class="form-label">School</label>

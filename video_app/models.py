@@ -55,7 +55,7 @@ class Session(models.Model):
 
 class CustomAdmin(AbstractUser):
     school = models.CharField(max_length=100)
-    district = models.CharField(max_length=100)
+    district = models.ForeignKey('District', on_delete=models.PROTECT)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     media_password = models.CharField(max_length=100, blank=True, null=True)
@@ -285,19 +285,29 @@ class Comment(models.Model):
         else:
             return None  # Or a default avatar path
 
+class District(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=20, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+
 class Observer(models.Model):
     name = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
-    district = models.CharField(max_length=100)  # To limit viewing to specific district
+    district = models.ForeignKey(District, on_delete=models.PROTECT)
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-    
-    # Link to the admin who created this observer
     created_by = models.ForeignKey('CustomAdmin', on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
-        return f"Observer: {self.name} - {self.district}"
+        return f"Observer: {self.name} - {self.district.name}"
 
     def can_view_session(self, session):
         """

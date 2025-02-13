@@ -21,10 +21,17 @@ from django.contrib.auth import views as auth_views
 from video_app.media_views import upload_media
 
 urlpatterns = [
+    # Admin authentication first
     path('admin/login/', AdminLoginView.as_view(), name='admin_login'),
     path('admin/logout/', auth_views.LogoutView.as_view(next_page='home'), name='admin_logout'),
-    path('admin/', admin.site.urls),
+    
+    # Your app's URLs before Django admin
     path('', include('video_app.urls')),
+    
+    # Django admin last
+    path('admin/', admin.site.urls),
+    
+    # Other URLs
     path('upload/', upload_media, name='upload_media'),
 ]
 

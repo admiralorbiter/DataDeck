@@ -7,26 +7,36 @@
 {% endblock %}
 {% block content %}
 <div class="observer-dashboard">
-    <div class="observer-welcome">
-        <h1>Observer Dashboard</h1>
-        <div class="observer-district">{{ observer_district }}</div>
-    </div>
-
-    <div class="sessions-container">
-        {% regroup available_sessions by created_by as teacher_sessions %}
-        {% for teacher in teacher_sessions %}
-            <div class="teacher-section">
-                <div class="teacher-name">{{ teacher.grouper.first_name }} {{ teacher.grouper.last_name }}</div>
-                <div class="period-list">
-                    {% for session in teacher.list %}
-                        <div class="period-item">
-                            <span class="period-name">Period {{ session.section }}</span>
-                            <a href="{% url 'session' session_pk=session.pk %}" class="view-session-btn">View Session</a>
-                        </div>
-                    {% endfor %}
-                </div>
+    <h1>District Dashboard - {{ district.name }}</h1>
+    
+    <div class="dashboard-section">
+        <h2>Teachers in District</h2>
+        <div class="teachers-list">
+            {% for teacher in teachers %}
+            <div class="teacher-card">
+                <h3>{{ teacher.get_full_name }}</h3>
+                <p>{{ teacher.school }}</p>
+                <p>Sessions: {{ teacher.session_set.count }}</p>
             </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="dashboard-section">
+        <h2>Recent Submissions</h2>
+        <div class="media-grid">
+            {% for media in media_items %}
+            <div class="media-card">
+                <h4>{{ media.title }}</h4>
+                <p>Class: {{ media.session.name }}</p>
+                <p>Teacher: {{ media.session.created_by.get_full_name }}</p>
+                <p>Submitted: {{ media.uploaded_at|date:"M d, Y" }}</p>
+                {% if media.image_file %}
+                    <img src="{{ media.image_file.url }}" alt="{{ media.title }}">
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %} 

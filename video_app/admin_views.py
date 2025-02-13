@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
-from video_app.models import Observer, CustomAdmin
+from video_app.models import Observer, CustomAdmin, District
 from django.contrib.auth.hashers import make_password
 
 @login_required
@@ -10,48 +10,112 @@ def admin_dashboard(request):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('home')
 
-    if request.method == 'POST':
-        # Handle observer creation
-        name = request.POST.get('name')
-        email = request.POST.get('email')
-        district = request.POST.get('district')
-        password = request.POST.get('password')
-
-        print(f"Creating observer with email: {email}")  # Debug print
-
-        try:
-            # Create observer with hashed password
-            hashed_password = make_password(password)
-            print(f"Hashed password: {hashed_password[:20]}...")  # Debug print
-
-            observer = Observer.objects.create(
-                name=name,
-                email=email,
-                district=district,
-                password=hashed_password,
-                created_by=request.user,
-                is_active=True
-            )
-            print(f"Observer created successfully: {observer.name}")  # Debug print
-            messages.success(request, f"Observer {name} created successfully!")
-        except Exception as e:
-            print(f"Error creating observer: {str(e)}")  # Debug print
-            messages.error(request, f"Error creating observer: {str(e)}")
-        
-        return redirect('admin_dashboard')
-
-    # Get all observers for display
-    observers = Observer.objects.filter(created_by=request.user)
-    
-    # Get unique districts from CustomAdmin model
-    districts = CustomAdmin.objects.values_list('district', flat=True).distinct()
-
     context = {
-        'observers': observers,
-        'districts': districts,
+        'observers': Observer.objects.all(),
+        'districts': District.objects.all(),
+        'teachers': CustomAdmin.objects.all(),
     }
-    
     return render(request, 'video_app/admin_dashboard.html', context)
+
+@login_required
+def create_district(request):
+    if request.method == 'POST':
+        name = request.POST.get('district_name')
+        if name:
+            try:
+                code = name.upper().replace(' ', '_')[:20]
+                District.objects.create(
+                    name=name,
+                    code=code,
+                    is_active=True
+                )
+                messages.success(request, f"District '{name}' created successfully!")
+            except Exception as e:
+                messages.error(request, f"Error creating district: {str(e)}")
+    return redirect('admin_dashboard')
+
+@login_required
+def edit_district(request, district_id):
+    district = get_object_or_404(District, id=district_id)
+    if request.method == 'POST':
+        name = request.POST.get('district_name')
+        if name:
+            try:
+                district.name = name
+                district.code = name.upper().replace(' ', '_')[:20]
+                district.save()
+                messages.success(request, f"District updated successfully!")
+            except Exception as e:
+                messages.error(request, f"Error updating district: {str(e)}")
+    return redirect('admin_dashboard')
+
+@login_required
+def delete_district(request, district_id):
+    district = get_object_or_404(District, id=district_id)
+    if request.method == 'POST':
+        try:
+            # Check if district has any associated teachers or observers
+            if district.customadmin_set.exists() or district.observer_set.exists():
+                messages.error(request, "Cannot delete district with associated teachers or observers")
+            else:
+                district.delete()
+                messages.success(request, "District deleted successfully!")
+        except Exception as e:
+            messages.error(request, f"Error deleting district: {str(e)}")
+    return redirect('admin_dashboard')
+
+@login_required
+def toggle_district(request, district_id):
+    district = get_object_or_404(District, id=district_id)
+    if request.method == 'POST':
+        try:
+            district.is_active = not district.is_active
+            district.save()
+            status = "activated" if district.is_active else "deactivated"
+            messages.success(request, f"District {status} successfully!")
+        except Exception as e:
+            messages.error(request, f"Error toggling district: {str(e)}")
+    return redirect('admin_dashboard')
+
+@login_required
+def create_observer(request):
+    if request.method == 'POST':
+        try:
+            district = District.objects.get(id=request.POST.get('district'))
+            observer = Observer.objects.create(
+                name=request.POST.get('name'),
+                email=request.POST.get('email'),
+                district=district,
+                password=make_password(request.POST.get('password')),
+                created_by=request.user
+            )
+            messages.success(request, f"Observer {observer.name} created successfully!")
+        except Exception as e:
+            messages.error(request, f"Error creating observer: {str(e)}")
+    
+    return redirect('admin_dashboard')
+
+@login_required
+def update_teacher_district(request, teacher_id):
+    if not isinstance(request.user, CustomAdmin):
+        messages.error(request, "You don't have permission to perform this action.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        try:
+            teacher = CustomAdmin.objects.get(id=teacher_id)
+            district = District.objects.get(id=request.POST.get('district'))
+            teacher.district = district
+            teacher.save()
+            messages.success(request, f"Updated district for {teacher.get_full_name()}")
+        except CustomAdmin.DoesNotExist:
+            messages.error(request, "Teacher not found.")
+        except District.DoesNotExist:
+            messages.error(request, "District not found.")
+        except Exception as e:
+            messages.error(request, f"Error updating teacher district: {str(e)}")
+    
+    return redirect('admin_dashboard')
 
 @login_required
 def deactivate_observer(request, observer_id):

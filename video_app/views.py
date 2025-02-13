@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404, redirect, render
-from .models import Student, StudentMediaInteraction, Comment, Media, Session, Observer
+from .models import Student, StudentMediaInteraction, Comment, Media, Session, Observer, CustomAdmin, District
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import CommentForm
@@ -132,37 +132,13 @@ def index(request):
 
 @login_required
 def teacher_view(request):
-    # Get all sessions related to the logged-in admin
-    sessions = Session.objects.filter(created_by=request.user)
+    if not request.user.is_authenticated:
+        return redirect('login')
     
-    # Get students related to the logged-in admin with interaction data
-    students = Student.objects.filter(admin=request.user).annotate(
-        total_votes=Coalesce(Sum(
-            Case(
-                When(media_interactions__liked_graph=True, then=1),
-                When(media_interactions__liked_eye=True, then=1),
-                When(media_interactions__liked_read=True, then=1),
-                default=0,
-                output_field=IntegerField()
-            )
-        ), 0),
-        total_comments=Coalesce(Sum('media_interactions__comment_count'), 0)
-    ).select_related('section')
-
-    # Add this to include the teacher's current information
-    teacher = request.user
-    
-    # Get top 10 media items for leaderboard, filtered by the teacher's sessions
-    media_leaderboard = Media.objects.filter(session__in=sessions).annotate(
-        total_votes=Sum(F('graph_likes') + F('eye_likes') + F('read_likes')),
-        total_comments=Count('comments')
-    ).order_by('-total_votes', '-total_comments')[:10]  # Get top 10 media items
-
     context = {
-        'sessions': sessions,
-        'students': students,
-        'teacher': teacher,
-        'media_leaderboard': media_leaderboard,
+        'teacher': request.user,
+        'districts': District.objects.filter(is_active=True),
+        'sessions': Session.objects.filter(created_by=request.user).order_by('-created_at')
     }
     return render(request, 'video_app/teacher_view.html', context)
 
@@ -245,3 +221,29 @@ def like_media(request, media_id, like_type):
         'read_likes': media.read_likes,
         'user_like': like_type if getattr(interaction, f'liked_{like_type}') else None
     })
+
+@login_required
+def observer_dashboard(request):
+    observer = request.user
+    if not hasattr(observer, 'district'):
+        messages.error(request, "No district assigned")
+        return redirect('login')
+    
+    # Get all teachers in the observer's district
+    teachers = CustomAdmin.objects.filter(district=observer.district)
+    
+    # Get all sessions from teachers in this district
+    sessions = Session.objects.filter(created_by__in=teachers)
+    
+    # Get recent media submissions
+    media_items = Media.objects.filter(
+        session__in=sessions
+    ).select_related('session', 'session__created_by').order_by('-uploaded_at')[:50]
+    
+    context = {
+        'teachers': teachers,
+        'sessions': sessions,
+        'media_items': media_items,
+        'district': observer.district
+    }
+    return render(request, 'video_app/observer_dashboard.html', context)

@@ -93,7 +93,7 @@ class AdminLoginView(views.LoginView):
         # Try to authenticate as observer FIRST
         try:
             observer = Observer.objects.get(email=username)
-            
+            # The password in DB is already hashed with pbkdf2_sha256
             if check_password(password, observer.password):
                 if not observer.is_active:
                     messages.error(self.request, "This observer account is inactive")
@@ -102,9 +102,10 @@ class AdminLoginView(views.LoginView):
                 # Store observer info in session
                 self.request.session['observer_id'] = observer.id
                 self.request.session['observer_name'] = observer.name
-                self.request.session['observer_district'] = observer.district
+                self.request.session['observer_district'] = observer.district.id
                 self.request.session.save()
                 
+                messages.success(self.request, f"Welcome, {observer.name}!")
                 return redirect('observer_dashboard')
             else:
                 messages.error(self.request, "Invalid password for observer account")
@@ -114,8 +115,8 @@ class AdminLoginView(views.LoginView):
             # If not an observer, try admin authentication
             user = authenticate(username=username, password=password)
             if user and isinstance(user, CustomAdmin):
-                form.user_cache = user  # Store the authenticated user
                 login(self.request, user)
+                messages.success(self.request, f"Welcome, {user.get_full_name()}!")
                 return redirect('home')
             else:
                 messages.error(self.request, "Invalid login credentials")

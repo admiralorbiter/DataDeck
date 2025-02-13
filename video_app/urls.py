@@ -1,4 +1,5 @@
 from django.urls import path, include
+from . import views, admin_views  # Import admin_views as a module
 
 from video_app import observer_views
 from video_app.observer_views import observer_dashboard
@@ -9,11 +10,23 @@ from .auth_views import student_login, student_logout, update_teacher_info
 from django.contrib.auth import login as auth_login 
 from django.contrib import admin
 from .student_management_views import download_students, delete_student, student_detail, character_gallery
-from .admin_views import admin_dashboard, deactivate_observer
+from .admin_views import admin_dashboard, deactivate_observer, create_district, create_observer, update_teacher_district, edit_district, delete_district, toggle_district
 from .media_views import upload_project
 
 urlpatterns = [
-    # Admin
+    # Admin and Teacher Management
+    path('admin-dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
+    path('admin/teacher/<int:teacher_id>/update-district/', admin_views.update_teacher_district, name='update_teacher_district'),
+    path('admin/observer/<int:observer_id>/deactivate/', admin_views.deactivate_observer, name='deactivate_observer'),
+    path('admin/create-observer/', admin_views.create_observer, name='create_observer'),
+    
+    # District Management
+    path('admin/districts/create/', admin_views.create_district, name='create_district'),
+    path('admin/districts/<int:district_id>/edit/', admin_views.edit_district, name='edit_district'),
+    path('admin/districts/<int:district_id>/delete/', admin_views.delete_district, name='delete_district'),
+    path('admin/districts/<int:district_id>/toggle/', admin_views.toggle_district, name='toggle_district'),
+    
+    # Django Admin (move this after our custom admin URLs)
     path('admin/', admin.site.urls),
 
     # Authentication
@@ -46,12 +59,6 @@ urlpatterns = [
     path('student/<int:student_id>/', student_detail, name='student_detail'),
     path('generate-new-students', generate_new_students, name='generate_new_students'),
 
-    # Admin
-    path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
-    path('admin/observer/<int:observer_id>/deactivate/', deactivate_observer, name='deactivate_observer'),
-    path('observer/dashboard/', observer_dashboard, name='observer_dashboard'),
-
-
     # Miscellaneous
     path('', views.index, name='home'),
     path('post/<int:id>/', views.post, name='post'),
@@ -61,4 +68,5 @@ urlpatterns = [
     path('check-section-availability/', check_section_availability, name='check_section_availability'),
     path('character-gallery/', character_gallery, name='character_gallery'),
     path('observer/logout/', observer_views.observer_logout, name='observer_logout'),
+    path('observer/dashboard/', observer_views.observer_dashboard, name='observer_dashboard'),
 ]
