@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import Count, Exists, OuterRef, Value, BooleanField, ExpressionWrapper
 from datadeck import settings
 from .forms import StartSessionForm
-from .models import CustomAdmin, Session, Media, Student, Comment, StudentMediaInteraction
+from .models import CustomAdmin, Session, Media, Student, Comment, StudentMediaInteraction, District
 from django.core.paginator import Paginator
 import json
 from django.db.models import Prefetch
@@ -35,67 +35,54 @@ def start_session(request):
     custom_admin, created = CustomAdmin.objects.get_or_create(id=user.id)
 
     if request.method == 'POST':
-        logger.info("POST request received in start_session view")
         form = StartSessionForm(request.POST)
         if form.is_valid():
-            logger.info("Form is valid")
             try:
-                # Extract form data
-                section = form.cleaned_data['section']
-                num_students = form.cleaned_data['num_students']
-                module = form.cleaned_data['module']
+                # Get or create the district
+                district_name = form.cleaned_data['district']
+                district, created = District.objects.get_or_create(
+                    name=district_name,
+                    defaults={
+                        'code': district_name.upper().replace(' ', '_')[:20],
+                        'is_active': True
+                    }
+                )
                 
                 # Update teacher information
-                custom_admin.district = form.cleaned_data['district']
+                custom_admin.district = district
                 custom_admin.school = form.cleaned_data['school']
                 custom_admin.first_name = form.cleaned_data['first_name']
                 custom_admin.last_name = form.cleaned_data['last_name']
                 custom_admin.save()
                 
-                # Generate the title
+                # Create the session
                 title = f"{custom_admin.last_name}'s Data Deck Fall 2024"
-                
-                # Check for existing session with the same title and section
-                existing_session = Session.objects.filter(
-                    name=title, 
-                    section=section, 
-                    created_by=custom_admin
-                ).first()
-                
-                if existing_session:
-                    logger.warning(f"Session with title '{title}' and section '{section}' already exists")
-                    messages.error(request, f"A session with the title '{title}' and section '{section}' already exists.")
-                    return render(request, 'video_app/start_session.html', {'form': form})
-                
-                # Create the session object with module
                 new_session = Session.objects.create(
                     name=title,
-                    section=section,
+                    section=form.cleaned_data['section'],
                     created_by=custom_admin,
-                    module=module
+                    module=form.cleaned_data['module']
                 )
                 
-                # Generate students and save them to the database
-                generate_users_for_section(new_session, num_students, custom_admin)
+                # Generate students
+                generate_users_for_section(new_session, form.cleaned_data['num_students'], custom_admin)
                 
-                logger.info(f"Session '{title}' created successfully with {num_students} students")
-                messages.success(request, f"Session '{title}' created successfully with {num_students} students.")
+                messages.success(request, f"Session '{title}' created successfully!")
                 return redirect('session', session_pk=new_session.id)
+                
             except Exception as e:
-                logger.error(f"Error creating session: {str(e)}")
-                messages.error(request, f"An error occurred while creating the session: {str(e)}")
+                messages.error(request, f"Error creating session: {str(e)}")
                 return render(request, 'video_app/start_session.html', {'form': form})
         else:
             logger.warning("Form is invalid")
             logger.warning(f"Form errors: {form.errors}")
     else:
-        logger.info("GET request received in start_session view")
         initial_data = {
-            'district': custom_admin.district,
+            'district': custom_admin.district.name if custom_admin.district else '',
             'school': custom_admin.school,
             'first_name': custom_admin.first_name,
             'last_name': custom_admin.last_name,
-            'module': 'general'
+            'module': '4'
         }
         form = StartSessionForm(initial=initial_data)
     

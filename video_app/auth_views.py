@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
-from .models import Session, Student, Observer, CustomAdmin
+from .models import Session, Student, Observer, CustomAdmin, District
 from django.contrib.auth.hashers import check_password
 from django import forms
 
@@ -134,23 +134,36 @@ class AdminLoginView(views.LoginView):
 @login_required
 def update_teacher_info(request):
     if request.method == 'POST':
-        teacher = request.user
-        teacher.district = request.POST.get('district')
-        teacher.school = request.POST.get('school')
-        teacher.first_name = request.POST.get('first_name')
-        teacher.last_name = request.POST.get('last_name')
-        
-        # Handle password update
-        new_password = request.POST.get('new_password')
-        if new_password:
-            teacher.set_password(new_password)
-        
-        teacher.save()
-        messages.success(request, 'Teacher information updated successfully.')
-        
-        # If password was changed, update the session to prevent logout
-        if new_password:
-            from django.contrib.auth import update_session_auth_hash
-            update_session_auth_hash(request, teacher)
+        try:
+            teacher = request.user
+            
+            # Get the District instance instead of the string value
+            district_id = request.POST.get('district')
+            if district_id:
+                district = District.objects.get(id=district_id)
+                teacher.district = district
+            
+            # Update other fields
+            teacher.school = request.POST.get('school')
+            teacher.first_name = request.POST.get('first_name')
+            teacher.last_name = request.POST.get('last_name')
+            
+            # Handle password update
+            new_password = request.POST.get('new_password')
+            if new_password:
+                teacher.set_password(new_password)
+            
+            teacher.save()
+            messages.success(request, 'Teacher information updated successfully.')
+            
+            # If password was changed, update the session to prevent logout
+            if new_password:
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, teacher)
+                
+        except District.DoesNotExist:
+            messages.error(request, "Selected district does not exist.")
+        except Exception as e:
+            messages.error(request, f"Error updating information: {str(e)}")
     
     return redirect('teacher_view')
