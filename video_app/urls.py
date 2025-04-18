@@ -50,6 +50,7 @@ urlpatterns = [
     path('session/<int:session_pk>/', session, name='session'),
     path('session/<int:session_pk>/delete/', delete_session, name='delete_session'), 
     path('session/<int:session_pk>/pause/', pause_session, name='pause_session'),
+    path('session/<int:session_pk>/archive/', views.archive_session, name='archive_session'),
     path('join-session/<str:session_code>/', student_login, name='student_login'),
     path('upload-project/<int:session_pk>/', upload_project, name='upload_project'),
 

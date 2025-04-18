@@ -18,6 +18,8 @@ from django.http import JsonResponse
 from .utils import get_available_character_sets
 import logging
 from django.http import HttpResponse
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,11 @@ def check_section_availability(request):
     section = request.GET.get('section')
     user = request.user
     custom_admin = CustomAdmin.objects.get(id=user.id)
-    is_available = not Session.objects.filter(section=section, created_by=custom_admin).exists()
+    is_available = not Session.objects.filter(
+        section=section, 
+        created_by=custom_admin,
+        is_archived=False  # Only check non-archived sessions
+    ).exists()
     return JsonResponse({'is_available': is_available})
 
 @transaction.atomic
@@ -54,6 +60,17 @@ def start_session(request):
                 custom_admin.first_name = form.cleaned_data['first_name']
                 custom_admin.last_name = form.cleaned_data['last_name']
                 custom_admin.save()
+                
+                # Check for active (non-archived) sessions with the same section
+                existing_active_session = Session.objects.filter(
+                    section=form.cleaned_data['section'],
+                    created_by=custom_admin,
+                    is_archived=False  # Only check non-archived sessions
+                ).first()
+                
+                if existing_active_session:
+                    messages.error(request, f"An active session for Hour {form.cleaned_data['section']} already exists. Please archive the existing session first.")
+                    return render(request, 'video_app/start_session.html', {'form': form})
                 
                 # Create the session
                 title = f"{custom_admin.last_name}'s Data Deck Fall 2024"
@@ -142,6 +159,7 @@ def session(request, session_pk):
     graph_choices = Media.GRAPH_TAG_CHOICES
     variable_choices = Media.VARIABLE_TAG_CHOICES
 
+    # Add archived status to context
     context = {
         'session_instance': session_instance,
         'page_obj': page_obj,
@@ -150,8 +168,15 @@ def session(request, session_pk):
         'variable_choices': variable_choices,
         'selected_graph_tag': graph_tag,
         'selected_variable_tag': variable_tag,
-        'filter_params': f"&graph_tag={graph_tag if graph_tag else ''}&variable_tag={variable_tag if variable_tag else ''}"
+        'filter_params': f"&graph_tag={graph_tag if graph_tag else ''}&variable_tag={variable_tag if variable_tag else ''}",
+        'is_archived': session_instance.is_archived,
+        'archived_at': session_instance.archived_at,
     }
+    
+    # If the session is archived, show a banner or message
+    if session_instance.is_archived:
+        messages.info(request, "This is an archived session. Some features may be limited.")
+    
     return render(request, 'video_app/session.html', context)
 
 @login_required
@@ -166,6 +191,24 @@ def pause_session(request, session_pk):
     session.save()
     return redirect('student_login')
 
+@login_required
+def archive_session(request, session_pk):
+    session = get_object_or_404(Session, pk=session_pk)
+    
+    try:
+        # Toggle archive status
+        if session.is_archived:
+            session.unarchive()
+            messages.success(request, f"Session '{session.name}' has been unarchived.")
+        else:
+            session.archive()
+            messages.success(request, f"Session '{session.name}' has been archived.")
+    except ValidationError as e:
+        # Handle the validation error
+        error_message = str(e.message if hasattr(e, 'message') else e.messages[0])
+        messages.error(request, error_message)
+    
+    return redirect('teacher_view')
 
 @transaction.atomic
 def generate_users_for_section(section, num_students, admin):
@@ -277,10 +320,19 @@ def generate_new_students(request):
         if num_students > 0 and section_id:
             try:
                 session = Session.objects.get(id=section_id)
+                
+                # Check if session is archived
+                if session.is_archived:
+                    messages.error(request, "Cannot add students to an archived session.")
+                    return redirect('teacher_view')
+                
                 admin = CustomAdmin.objects.get(id=request.user.id)
                 
                 # Get existing student names for this session
-                existing_names = set(Student.objects.filter(section=session).values_list('name', flat=True))
+                existing_names = set(Student.objects.filter(
+                    section=session,
+                    section__is_archived=False  # Only check against active sessions
+                ).values_list('name', flat=True))
                 
                 generated_students = []
                 attempts = 0
@@ -295,13 +347,18 @@ def generate_new_students(request):
                 
                 if len(generated_students) < num_students:
                     messages.warning(request, f"Only {len(generated_students)} new unique students could be generated. Consider using a different character set.")
-                else:
+                elif len(generated_students) > 0:
                     messages.success(request, f"{len(generated_students)} new students generated for Hour {session.section}")
+                else:
+                    messages.error(request, "No students were generated. Please try again.")
             
             except Session.DoesNotExist:
                 messages.error(request, "Invalid session selected. Please try again.")
             except CustomAdmin.DoesNotExist:
                 messages.error(request, "User is not a CustomAdmin. Please log in with the correct account.")
+            except Exception as e:
+                messages.error(request, f"Error generating students: {str(e)}")
+                print(f"Error in generate_new_students: {str(e)}")  # For debugging
         else:
             messages.error(request, "Invalid input. Please try again.")
     
@@ -317,14 +374,20 @@ def generate_user_for_section(session, admin, existing_names):
             _, characters = load_character_set(character_set)
             all_characters.extend(characters)
         
+        # Add debug logging
+        print(f"Found {len(all_characters)} total characters")
+        print(f"Existing names: {existing_names}")
+        
         # Filter out characters that already exist in the session
         available_characters = [char for char in all_characters if char['name'] not in existing_names]
+        print(f"Found {len(available_characters)} available characters")
         
         if not available_characters:
             print("No unique characters available.")
             return None
         
         character = random.choice(available_characters)
+        print(f"Selected character: {character['name']}")
         
         # Generate a unique 5-digit passcode
         existing_passcodes = set(Student.objects.filter(section=session).values_list('password', flat=True))
@@ -334,7 +397,7 @@ def generate_user_for_section(session, admin, existing_names):
                 break
         
         avatar_image_path = f'video_app/images/characters/{character["character_set"]}/{character["filename"]}'
-
+        
         student = Student.objects.create(
             name=character['name'],
             password=passcode,
@@ -344,6 +407,7 @@ def generate_user_for_section(session, admin, existing_names):
             avatar_image_path=avatar_image_path
         )
         
+        print(f"Successfully created student: {student.name}")
         return student
     except Exception as e:
         print(f"Error generating user: {str(e)}")

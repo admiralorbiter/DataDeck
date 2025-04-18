@@ -135,11 +135,34 @@ def teacher_view(request):
     if not request.user.is_authenticated:
         return redirect('login')
     
+    # Get all sessions for this teacher
+    sessions = Session.objects.filter(created_by=request.user).order_by('-created_at')
+    
+    # Get all students for this teacher with their interactions, but only from non-archived sessions
+    students = Student.objects.filter(
+        admin=request.user,
+        section__is_archived=False  # Only get students from non-archived sessions
+    ).select_related(
+        'section'
+    ).annotate(
+        total_votes=Count('media_interactions'),
+        total_comments=Count('comments')
+    ).order_by('section__section', 'name')
+    
     context = {
         'teacher': request.user,
         'districts': District.objects.filter(is_active=True),
-        'sessions': Session.objects.filter(created_by=request.user).order_by('-created_at')
+        'sessions': sessions,
+        'students': students,
+        'media_leaderboard': Media.objects.filter(
+            session__created_by=request.user,
+            session__is_archived=False  # Only show media from non-archived sessions
+        ).annotate(
+            total_votes=Count('student_interactions'),
+            total_comments=Count('comments')
+        ).order_by('-total_votes', '-total_comments')[:10]
     }
+    
     return render(request, 'video_app/teacher_view.html', context)
 
 def filter_media(request, session_pk):
@@ -247,3 +270,14 @@ def observer_dashboard(request):
         'district': observer.district
     }
     return render(request, 'video_app/observer_dashboard.html', context)
+
+@login_required
+def archive_session(request, session_pk):
+    session = get_object_or_404(Session, pk=session_pk)
+    if session.is_archived:
+        session.unarchive()
+        messages.success(request, f"Hour {session.section} has been unarchived.")
+    else:
+        session.archive()
+        messages.success(request, f"Hour {session.section} has been archived.")
+    return redirect('teacher_view')

@@ -18,20 +18,33 @@
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
                         {% for session in sessions %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <a href="{% url 'session' session.id %}" class="text-decoration-none">
-                                    {% if session.section == 0 %}
-                                        Data Deck
-                                    {% else %}
-                                        Hour {{ session.section }}
-                                    {% endif %}
-                                </a>
-                                <form method="post" action="{% url 'delete_session' session.id %}" onsubmit="return confirm('Are you sure you want to delete this hour?');" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                            <li class="list-group-item d-flex justify-content-between align-items-center {% if session.is_archived %}bg-light{% endif %}">
+                                <div>
+                                    <a href="{% url 'session' session.id %}" class="text-decoration-none {% if session.is_archived %}text-muted{% endif %}">
+                                        {% if session.section == 0 %}
+                                            Data Deck
+                                        {% else %}
+                                            Hour {{ session.section }}
+                                        {% endif %}
+                                        {% if session.is_archived %}
+                                            <span class="badge bg-secondary">Archived</span>
+                                        {% endif %}
+                                    </a>
+                                </div>
+                                <div class="btn-group">
+                                    <form method="post" action="{% url 'archive_session' session.id %}" class="d-inline me-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-info btn-sm" title="{% if session.is_archived %}Unarchive{% else %}Archive{% endif %}">
+                                            <i class="fas {% if session.is_archived %}fa-box-open{% else %}fa-archive{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'delete_session' session.id %}" onsubmit="return confirm('Are you sure you want to delete this hour?');" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </li>
                         {% endfor %}
                     </ul>
@@ -105,7 +118,9 @@
                                     <input type="number" name="num_students" class="form-control" placeholder="# of students" min="1" max="10" required>
                                     <select name="section" class="form-select" required>
                                         {% for session in sessions %}
-                                            <option value="{{ session.id }}">Hour {{ session.section }}</option>
+                                            {% if not session.is_archived %}
+                                                <option value="{{ session.id }}">Hour {{ session.section }}</option>
+                                            {% endif %}
                                         {% endfor %}
                                     </select>
                                     <button type="submit" class="btn btn-success">

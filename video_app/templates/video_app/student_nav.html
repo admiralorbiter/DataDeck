@@ -1,4 +1,5 @@
 {% load static %}
+{% load custom_filters %}
 <nav class="navbar">
     <div class="nav-items">
         <a class="navbar-brand" href="{% url 'home' %}" id="logo">
@@ -8,16 +9,20 @@
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'home' %}">Home</a>
             </li>
-            {%if 'student_id' in request.session %}
+            {% if 'student_id' in request.session %}
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'student_detail' request.session.student_id %}">Character Profile</a>
             </li>
             {% endif %}
             
             {% if 'current_session_id' in request.session %}
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'session' session_pk=request.session.current_session_id %}">Data Deck</a>
-            </li>
+                {% with current_session=request.session.current_session_id|get_session %}
+                    {% if not current_session.is_archived %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'session' session_pk=request.session.current_session_id %}">Data Deck</a>
+                        </li>
+                    {% endif %}
+                {% endwith %}
             {% endif %}
             
             <li class="nav-item">

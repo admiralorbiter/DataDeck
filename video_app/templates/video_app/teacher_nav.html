@@ -23,35 +23,39 @@
                                             <small class="d-block text-muted mb-1">{{ teacher.grouper }}</small>
                                             <div class="d-flex flex-wrap gap-1">
                                                 {% for session in teacher.list|dictsort:"section" %}
-                                                    <a href="{% url 'session' session.id %}" class="badge badge-secondary">
-                                                        {% if session.section == 0 %}
-                                                            Data
-                                                        {% else %}
-                                                            Hr {{ session.section }}
-                                                        {% endif %}
-                                                    </a>
+                                                    {% if not session.is_archived %}
+                                                        <a href="{% url 'session' session.id %}" class="badge badge-secondary">
+                                                            {% if session.section == 0 %}
+                                                                Data
+                                                            {% else %}
+                                                                Hr {{ session.section }}
+                                                            {% endif %}
+                                                        </a>
+                                                    {% endif %}
                                                 {% endfor %}
                                             </div>
                                         </div>
                                     </li>
                                 {% empty %}
-                                    <li class="list-group-item">No sessions available</li>
+                                    <li class="list-group-item">No active sessions available</li>
                                 {% endfor %}
                             {% else %}
                                 {% for session in nav_sessions %}
-                                    <li class="list-group-item">
-                                        <a href="{% url 'session' session.id %}" class="session-link">
-                                            <span class="session-hour">
-                                                {% if session.section == 0 %}
-                                                    Data Deck
-                                                {% else %}
-                                                    Hour {{ session.section }}
-                                                {% endif %}
-                                            </span>
-                                        </a>
-                                    </li>
+                                    {% if not session.is_archived %}
+                                        <li class="list-group-item">
+                                            <a href="{% url 'session' session.id %}" class="session-link">
+                                                <span class="session-hour">
+                                                    {% if session.section == 0 %}
+                                                        Data Deck
+                                                    {% else %}
+                                                        Hour {{ session.section }}
+                                                    {% endif %}
+                                                </span>
+                                            </a>
+                                        </li>
+                                    {% endif %}
                                 {% empty %}
-                                    <li class="list-group-item">No sessions available</li>
+                                    <li class="list-group-item">No active sessions available</li>
                                 {% endfor %}
                             {% endif %}
                         </ul>
@@ -61,7 +65,7 @@
                     <a class="nav-link" href="{% url 'teacher_view' %}">Teacher Dashboard</a>
                 </li>
                 {% if user.is_superuser %}
-                <li class="nav-item"></li>
+                <li class="nav-item">
                     <a class="nav-link" href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
                 </li>
                 {% endif %}

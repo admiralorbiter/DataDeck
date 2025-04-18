@@ -13,6 +13,7 @@ from datadeck import settings
 
 class Session(models.Model):
     name = models.CharField(max_length=100)
+    original_name = models.CharField(max_length=100, null=True, blank=True)  # To store the original name when archived
     session_code = models.CharField(max_length=8, unique=True, editable=False)
     section = models.IntegerField()
 
@@ -29,6 +30,17 @@ class Session(models.Model):
     def clean(self):
         if self.section < 0:
             raise ValidationError("Section number cannot be negative.")
+        
+        # Only check for duplicate names when unarchiving or creating new sessions
+        if not self.is_archived:
+            existing_session = Session.objects.filter(
+                created_by=self.created_by,
+                section=self.section,  # Check section instead of name
+                is_archived=False
+            ).exclude(pk=self.pk).first()
+            
+            if existing_session:
+                raise ValidationError(f"An active session already exists for Hour {self.section}. Cannot have multiple active sessions for the same hour.")
 
     def save(self, *args, **kwargs):
         if not self.session_code:
@@ -40,6 +52,8 @@ class Session(models.Model):
     is_paused = models.BooleanField(default=False)
     created_by = models.ForeignKey('CustomAdmin', on_delete=models.SET_NULL, blank=True, null=True)
     character_set = models.CharField(max_length=50, default='marvel')
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     def is_expired(self):
         return not self.is_paused and (timezone.now() > self.created_at + timedelta(days=7))
@@ -53,11 +67,36 @@ class Session(models.Model):
     def __str__(self):
         return self.name
 
+    def archive(self):
+        self.original_name = self.name
+        self.name = f"{self.name} (Archived {timezone.now().strftime('%Y-%m-%d')})"
+        self.is_archived = True
+        self.archived_at = timezone.now()
+        self.save()
+
+    def unarchive(self):
+        # First check if there's an active session with the same section
+        existing_active = Session.objects.filter(
+            created_by=self.created_by,
+            section=self.section,
+            is_archived=False
+        ).exclude(pk=self.pk).exists()
+
+        if existing_active:
+            raise ValidationError(f"Cannot unarchive - Hour {self.section} already has an active session.")
+
+        if self.original_name:
+            self.name = self.original_name
+            self.original_name = None
+        self.is_archived = False
+        self.archived_at = None
+        self.save()
+
 class CustomAdmin(AbstractUser):
-    school = models.CharField(max_length=100)
-    district = models.ForeignKey('District', on_delete=models.PROTECT)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    school = models.CharField(max_length=100, null=True, blank=True)
+    district = models.ForeignKey('District', on_delete=models.PROTECT, null=True, blank=True)
+    first_name = models.CharField(max_length=100, null=True, blank=True)
+    last_name = models.CharField(max_length=100, null=True, blank=True)
     media_password = models.CharField(max_length=100, blank=True, null=True)
     profile_picture = models.CharField(max_length=255, blank=True, null=True)
 

@@ -90,4 +90,30 @@
 {% endblock %}
 {% block extra_js %}
     <script src="{% static 'video_app/js/start_session.js' %}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sectionSelect = document.getElementById('id_section');
+        
+        sectionSelect.addEventListener('change', function() {
+            const section = this.value;
+            
+            // Clear previous feedback
+            const feedbackDiv = this.nextElementSibling;
+            
+            fetch(`/check-section-availability/?section=${section}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.is_available) {
+                        feedbackDiv.textContent = "This hour already has an active session. Please archive it first.";
+                        feedbackDiv.className = "invalid-feedback d-block";
+                        this.setCustomValidity("Invalid section");
+                    } else {
+                        feedbackDiv.textContent = "Hour is available";
+                        feedbackDiv.className = "valid-feedback";
+                        this.setCustomValidity("");
+                    }
+                });
+        });
+    });
+    </script>
 {% endblock %}
