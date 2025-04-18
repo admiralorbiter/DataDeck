@@ -45,7 +45,12 @@ class Session(models.Model):
     def save(self, *args, **kwargs):
         if not self.session_code:
             self.session_code = uuid.uuid4().hex[:8].upper()
-        self.full_clean()
+        
+        # Skip validation if the session is being archived/unarchived
+        skip_validation = kwargs.pop('skip_validation', False)
+        if not skip_validation:
+            self.full_clean()
+        
         super().save(*args, **kwargs)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -68,54 +73,31 @@ class Session(models.Model):
         return self.name
 
     def archive(self):
-        try:
-            self.original_name = self.name
-            self.name = f"{self.name} (Archived {timezone.now().strftime('%Y-%m-%d')})"
-            self.is_archived = True
-            self.archived_at = timezone.now()
-            
-            # Handle legacy modules by skipping validation
-            self.save(update_fields=['name', 'original_name', 'is_archived', 'archived_at'])
-            
-        except Exception as e:
-            # Log the error but don't prevent archiving
-            print(f"Warning during archive of session {self.id}: {str(e)}")
-            # Still try to archive even if there was an error
-            self.is_archived = True
-            self.archived_at = timezone.now()
-            self.save(update_fields=['is_archived', 'archived_at'])
+        self.original_name = self.name
+        self.name = f"{self.name} (Archived {timezone.now().strftime('%Y-%m-%d')})"
+        self.is_archived = True
+        self.archived_at = timezone.now()
+        # Skip validation when archiving
+        self.save(skip_validation=True)
 
     def unarchive(self):
-        try:
-            # First check if there's an active session with the same section
-            existing_active = Session.objects.filter(
-                created_by=self.created_by,
-                section=self.section,
-                is_archived=False
-            ).exclude(pk=self.pk).exists()
+        # First check if there's an active session with the same section
+        existing_active = Session.objects.filter(
+            created_by=self.created_by,
+            section=self.section,
+            is_archived=False
+        ).exclude(pk=self.pk).exists()
 
-            if existing_active:
-                raise ValidationError(f"Cannot unarchive - Hour {self.section} already has an active session.")
+        if existing_active:
+            raise ValidationError(f"Cannot unarchive - Hour {self.section} already has an active session.")
 
-            if self.original_name:
-                self.name = self.original_name
-                self.original_name = None
-            self.is_archived = False
-            self.archived_at = None
-            
-            # Handle legacy modules by skipping validation
-            self.save(update_fields=['name', 'original_name', 'is_archived', 'archived_at'])
-            
-        except ValidationError:
-            # Re-raise validation errors about duplicate active sessions
-            raise
-        except Exception as e:
-            # Log the error but don't prevent unarchiving
-            print(f"Warning during unarchive of session {self.id}: {str(e)}")
-            # Still try to unarchive even if there was an error
-            self.is_archived = False
-            self.archived_at = None
-            self.save(update_fields=['is_archived', 'archived_at'])
+        if self.original_name:
+            self.name = self.original_name
+            self.original_name = None
+        self.is_archived = False
+        self.archived_at = None
+        # Skip validation when unarchiving
+        self.save(skip_validation=True)
 
 class CustomAdmin(AbstractUser):
     school = models.CharField(max_length=100, null=True, blank=True)
