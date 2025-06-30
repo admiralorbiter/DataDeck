@@ -1,4 +1,4 @@
-# Data Deck / Engage KC
+# DataDeck / Engage KC
 
 This project is a core component of our 8th grade data science curriculum, designed to provide students with an interactive platform to enhance their understanding of data analysis and visualization. It allows students to create and share their data visualizations, post screenshots, and provide constructive feedback to their peers—all within a virtual learning environment. By fostering a culture of collaboration and peer review, the project helps students develop essential skills in data literacy, critical thinking, and effective communication.
 

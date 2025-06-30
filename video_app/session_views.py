@@ -73,7 +73,7 @@ def start_session(request):
                     return render(request, 'video_app/start_session.html', {'form': form})
                 
                 # Create the session
-                title = f"{custom_admin.last_name}'s Data Deck Fall 2024"
+                title = f"{custom_admin.last_name}'s DataDeck Fall 2024"
                 new_session = Session.objects.create(
                     name=title,
                     section=form.cleaned_data['section'],

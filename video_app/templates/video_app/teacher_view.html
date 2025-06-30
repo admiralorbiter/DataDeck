@@ -22,7 +22,7 @@
                                 <div>
                                     <a href="{% url 'session' session.id %}" class="text-decoration-none {% if session.is_archived %}text-muted{% endif %}">
                                         {% if session.section == 0 %}
-                                            Data Deck
+                                            DataDeck
                                         {% else %}
                                             Hour {{ session.section }}
                                         {% endif %}
