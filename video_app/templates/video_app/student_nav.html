@@ -19,7 +19,7 @@
                 {% with current_session=request.session.current_session_id|get_session %}
                     {% if not current_session.is_archived %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'session' session_pk=request.session.current_session_id %}">Data Deck</a>
+                            <a class="nav-link" href="{% url 'session' session_pk=request.session.current_session_id %}">DataDeck</a>
                         </li>
                     {% endif %}
                 {% endwith %}

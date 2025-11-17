@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "repl-nix-prep-kc-data-deck"
 version = "0.1.0"
-description = "Data Deck application for PREP-KC"
+description = "DataDeck application for PREP-KC"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
 
