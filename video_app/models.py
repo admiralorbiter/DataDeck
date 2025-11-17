@@ -19,7 +19,7 @@ class Session(models.Model):
 
     MODULE_CHOICES = [
         ('4', 'Module 4: Think Like a Data Scientist'),
-        ('2', 'Module 2: Classroom Census'),
+        ('2', 'Module 3: Classroom Census'),
     ]
     module = models.CharField(
         max_length=20,

@@ -41,6 +41,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='session',
             name='module',
-            field=models.CharField(choices=[('4', 'Module 4: Think Like a Data Scientist'), ('2', 'Module 2: Classroom Census')], default='4', max_length=20),
+            field=models.CharField(choices=[('4', 'Module 4: Think Like a Data Scientist'), ('2', 'Module 3: Classroom Census')], default='4', max_length=20),
         ),
     ]
