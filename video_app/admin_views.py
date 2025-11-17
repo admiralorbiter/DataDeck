@@ -168,6 +168,33 @@ def update_teacher_district(request, teacher_id):
     return redirect('admin_dashboard')
 
 @login_required
+def delete_teacher(request, teacher_id):
+    if not isinstance(request.user, CustomAdmin):
+        messages.error(request, "You don't have permission to perform this action.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        try:
+            teacher = CustomAdmin.objects.get(id=teacher_id)
+            
+            # Prevent deleting yourself
+            if teacher.id == request.user.id:
+                messages.error(request, "You cannot delete your own account.")
+                return redirect('admin_dashboard')
+            
+            teacher_name = teacher.get_full_name() or teacher.username
+            
+            # Delete the teacher (this will cascade delete their students due to CASCADE relationship)
+            teacher.delete()
+            messages.success(request, f"Teacher {teacher_name} has been deleted successfully.")
+        except CustomAdmin.DoesNotExist:
+            messages.error(request, "Teacher not found.")
+        except Exception as e:
+            messages.error(request, f"Error deleting teacher: {str(e)}")
+    
+    return redirect('admin_dashboard')
+
+@login_required
 def deactivate_observer(request, observer_id):
     if not isinstance(request.user, CustomAdmin):
         messages.error(request, "You don't have permission to perform this action.")

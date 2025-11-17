@@ -10,13 +10,14 @@ from .auth_views import student_login, student_logout, update_teacher_info
 from django.contrib.auth import login as auth_login 
 from django.contrib import admin
 from .student_management_views import download_students, delete_student, student_detail, character_gallery
-from .admin_views import admin_dashboard, deactivate_observer, create_district, create_observer, create_teacher, update_teacher_district, edit_district, delete_district, toggle_district
+from .admin_views import admin_dashboard, deactivate_observer, create_district, create_observer, create_teacher, update_teacher_district, delete_teacher, edit_district, delete_district, toggle_district
 from .media_views import upload_project
 
 urlpatterns = [
     # Admin and Teacher Management
     path('admin-dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
     path('admin/teacher/<int:teacher_id>/update-district/', admin_views.update_teacher_district, name='update_teacher_district'),
+    path('admin/teacher/<int:teacher_id>/delete/', admin_views.delete_teacher, name='delete_teacher'),
     path('admin/observer/<int:observer_id>/deactivate/', admin_views.deactivate_observer, name='deactivate_observer'),
     path('admin/observer/<int:observer_id>/change-password/', admin_views.change_observer_password, name='change_observer_password'),
     path('admin/create-observer/', admin_views.create_observer, name='create_observer'),

@@ -151,9 +151,9 @@
             {% for teacher in teachers %}
             <div class="teacher-card">
                 <div class="teacher-info">
-                    <h4>{{ teacher.get_full_name }}</h4>
-                    <p>School: {{ teacher.school }}</p>
-                    <p>District: {{ teacher.district.name }}</p>
+                    <h4>{{ teacher.get_full_name|default:teacher.username }}</h4>
+                    <p>School: {{ teacher.school|default:"Not set" }}</p>
+                    <p>District: {% if teacher.district %}{{ teacher.district.name }}{% else %}Not set{% endif %}</p>
                 </div>
                 <div class="teacher-actions">
                     <form method="POST" action="{% url 'update_teacher_district' teacher.id %}" class="update-district-form">
@@ -166,6 +166,10 @@
                             {% endfor %}
                         </select>
                         <button type="submit" class="btn btn-primary">Update District</button>
+                    </form>
+                    <form method="POST" action="{% url 'delete_teacher' teacher.id %}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete {{ teacher.get_full_name|default:teacher.username }}? This will also delete all their students. This action cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Delete Teacher</button>
                     </form>
                 </div>
             </div>
