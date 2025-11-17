@@ -131,10 +131,10 @@ def create_teacher(request):
                 district=district
             )
             
-            # Set staff status (required for teachers)
-            teacher.is_staff = True
-            # Set superuser status if checkbox was checked
-            teacher.is_superuser = is_superuser
+            # Set required status flags
+            teacher.is_active = True  # Ensure user can log in
+            teacher.is_staff = True  # Required for teachers
+            teacher.is_superuser = is_superuser  # Optional superuser status
             teacher.save()
             
             messages.success(request, f"Teacher {teacher.get_full_name()} created successfully!")
