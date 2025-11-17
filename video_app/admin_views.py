@@ -96,6 +96,56 @@ def create_observer(request):
     return redirect('admin_dashboard')
 
 @login_required
+def create_teacher(request):
+    if not isinstance(request.user, CustomAdmin):
+        messages.error(request, "You don't have permission to perform this action.")
+        return redirect('home')
+    
+    if request.method == 'POST':
+        try:
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            password = request.POST.get('password')
+            first_name = request.POST.get('first_name')
+            last_name = request.POST.get('last_name')
+            school = request.POST.get('school')
+            district_id = request.POST.get('district')
+            is_superuser = request.POST.get('is_superuser') == 'on'
+            
+            # Validate required fields
+            if not all([username, email, password, first_name, last_name, school, district_id]):
+                messages.error(request, "All fields are required.")
+                return redirect('admin_dashboard')
+            
+            # Get district
+            district = District.objects.get(id=district_id)
+            
+            # Create teacher account
+            teacher = CustomAdmin.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                school=school,
+                district=district
+            )
+            
+            # Set staff status (required for teachers)
+            teacher.is_staff = True
+            # Set superuser status if checkbox was checked
+            teacher.is_superuser = is_superuser
+            teacher.save()
+            
+            messages.success(request, f"Teacher {teacher.get_full_name()} created successfully!")
+        except District.DoesNotExist:
+            messages.error(request, "Selected district does not exist.")
+        except Exception as e:
+            messages.error(request, f"Error creating teacher: {str(e)}")
+    
+    return redirect('admin_dashboard')
+
+@login_required
 def update_teacher_district(request, teacher_id):
     if not isinstance(request.user, CustomAdmin):
         messages.error(request, "You don't have permission to perform this action.")

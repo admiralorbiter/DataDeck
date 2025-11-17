@@ -89,6 +89,61 @@
         </form>
     </div>
 
+    <!-- Teacher Creation Section -->
+    <div class="dashboard-section">
+        <h2>Create Teacher</h2>
+        <form method="POST" action="{% url 'create_teacher' %}" class="teacher-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="school">School</label>
+                <input type="text" id="school" name="school" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="district">District</label>
+                <select id="district" name="district" class="form-control" required>
+                    {% for district in districts %}
+                        <option value="{{ district.id }}">{{ district.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <div class="form-check">
+                    <input type="checkbox" id="is_superuser" name="is_superuser" class="form-check-input">
+                    <label for="is_superuser" class="form-check-label">Make Superuser (grants access to Admin Dashboard)</label>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn">Create Teacher</button>
+        </form>
+    </div>
+
     <!-- Add this after the observer section -->
     <div class="dashboard-section">
         <h2>Manage Teachers</h2>
