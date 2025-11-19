@@ -3,7 +3,7 @@ from .models import Student, StudentMediaInteraction, Comment, Media, Session, O
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import CommentForm
-from django.db.models import Count, Sum, F, Case, When, IntegerField
+from django.db.models import Count, Sum, F, Case, When, IntegerField, Q
 from django.urls import reverse
 from django.contrib.auth.decorators import user_passes_test
 from django.db.models.functions import Coalesce
@@ -139,13 +139,20 @@ def teacher_view(request):
     sessions = Session.objects.filter(created_by=request.user).order_by('-created_at')
     
     # Get all students for this teacher with their interactions, but only from non-archived sessions
+    # Only count interactions where at least one like flag is set (not just comment-only interactions)
     students = Student.objects.filter(
         admin=request.user,
         section__is_archived=False  # Only get students from non-archived sessions
     ).select_related(
         'section'
     ).annotate(
-        total_votes=Count('media_interactions'),
+        total_votes=Count(
+            'media_interactions',
+            filter=Q(media_interactions__liked_graph=True) | 
+                   Q(media_interactions__liked_eye=True) | 
+                   Q(media_interactions__liked_read=True),
+            distinct=True
+        ),
         total_comments=Count('comments')
     ).order_by('section__section', 'name')
     
@@ -158,7 +165,14 @@ def teacher_view(request):
             session__created_by=request.user,
             session__is_archived=False  # Only show media from non-archived sessions
         ).annotate(
-            total_votes=Count('student_interactions'),
+            # Only count interactions where at least one like flag is set (not just comment-only interactions)
+            total_votes=Count(
+                'student_interactions',
+                filter=Q(student_interactions__liked_graph=True) | 
+                       Q(student_interactions__liked_eye=True) | 
+                       Q(student_interactions__liked_read=True),
+                distinct=True
+            ),
             total_comments=Count('comments')
         ).order_by('-total_votes', '-total_comments')[:10]
     }

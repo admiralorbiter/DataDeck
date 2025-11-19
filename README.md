@@ -83,6 +83,39 @@ Creates a session with tons of example vizzes
 python manage.py loaddata initial_data.json
 ```
 
+### Maintenance Commands
+
+#### Rebuild Vote/Comment Counts
+
+If vote or comment counts appear incorrect (e.g., deleted comments still being counted), you can rebuild all counts from the actual data. This command operates on **all** data globally and is safe to run multiple times.
+
+**When to use:**
+- After fixing data inconsistencies
+- If teachers report incorrect vote/comment totals
+- As part of regular maintenance
+
+**Usage:**
+
+```bash
+# Preview what would be updated (dry run)
+python manage.py rebuild_interactions --dry-run
+
+# Actually update the counts
+python manage.py rebuild_interactions
+
+# Also rebuild interaction comment_count fields (optional)
+python manage.py rebuild_interactions --update-comment-counts
+```
+
+**What it does:**
+- Recomputes `graph_likes`, `eye_likes`, and `read_likes` on all `Media` objects from actual `StudentMediaInteraction` records
+- Optionally updates `StudentMediaInteraction.comment_count` fields to match actual `Comment` rows (when using `--update-comment-counts`)
+
+**Note:** This is a CLI-only command. There is no UI button to trigger it. Only system administrators should run this command.
+
+**Historical Context:**
+Previously, when students commented on media, a `StudentMediaInteraction` record was created. These records were being counted as "votes" in the teacher dashboard, even when the student never actually voted (liked) the media. Additionally, when comments were deleted, the interaction records remained, causing phantom vote counts. This has been fixed in the code, but existing data may need to be rebuilt using this command.
+
 ### Old Commands (Not Currently Needed)
 
 Celery Worker - No need to run currently:
